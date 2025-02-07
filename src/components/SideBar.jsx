@@ -2,14 +2,34 @@ import React, { useState } from 'react';
 import { Layout, Menu } from 'antd';
 import { DashboardOutlined, FileSearchOutlined } from '@ant-design/icons';
 import armorcodeLogo from '../assets/armorcode_logo_mini1.png';
-
+import { useNavigate,useLocation } from 'react-router-dom';
 const { Sider } = Layout;
 
 export default function Sidebar() {
   const [collapsed, setCollapsed] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  
+  const getSelectedKey = () => {
+    if (location.pathname.startsWith('/dashboard')) {
+      return ['1'];
+    }
+    if (location.pathname.startsWith('/finding')) {
+      return ['2'];
+    }
+    return []; // default if no match
+  };
 
   const toggleSidebar = () => {
     setCollapsed((prev) => !prev);
+  };
+
+  const menueItemClick = (e) => {
+    if (e.key === '1') {
+      navigate('/dashboard');
+    } else if (e.key === '2') {
+      navigate('/finding');
+    }
   };
 
   const menuItems = [
@@ -78,9 +98,10 @@ export default function Sidebar() {
       <Menu
         theme="dark"
         mode="inline"
-        defaultSelectedKeys={['1']}
+        selectedKeys={getSelectedKey()}
         style={{ border: 'none',backgroundColor:'#001a33'}}
         items={menuItems}
+        onClick={menueItemClick}
       />
     </Sider>
   );

@@ -34,6 +34,9 @@ const AdditionalFinding = ({ finding }) => {
       size="small"
       style={{ marginTop: 16 }}
     >
+    <Descriptions.Item label="Alert Id">
+        {finding.additionalData.number}
+      </Descriptions.Item>
       <Descriptions.Item label="Title">
         {finding.title}
       </Descriptions.Item>

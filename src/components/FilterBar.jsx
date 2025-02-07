@@ -18,9 +18,8 @@ const severityOptions = [
 
 const statusOptions = [
   { label: 'OPEN', value: 'OPEN' },
-  { label: 'CLOSED', value: 'CLOSED' },
   { label: 'FALSE_POSITIVE', value: 'FALSE_POSITIVE' },
-  { label: 'SURPPRESSED', value: 'SURPPRESSED' },
+  { label: 'SUPPRESSED', value: 'SUPPRESSED' },
   { label: 'FIXED', value: 'FIXED' },
   { label: 'CONFIRM', value: 'CONFIRM' },
 ];

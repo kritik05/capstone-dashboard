@@ -1,8 +1,9 @@
 import React from 'react';
 import { useState } from 'react';
-import { Table, Tag, Tooltip,Drawer,Button,Select } from 'antd';
+import { Table, Tag, Tooltip,Drawer,Button } from 'antd';
 import { PlusOutlined } from '@ant-design/icons';
 import AdditionalFinding from './AdditionalFinding';
+import StatusPopover from './StatusPopover';
 
 const severityColorMap = {
   CRITICAL: 'red',
@@ -12,14 +13,6 @@ const severityColorMap = {
   INFO: 'blue',
 };
 
-const statusColorMap = {
-  OPEN: 'green',
-  CLOSED: 'geekblue',
-  FALSE_POSITIVE: 'red',
-  SUPPRESSED: 'orange',
-  FIXED: 'purple',
-  CONFIRM: 'magenta',
-};
 
 const toolTypeColorMap = {
   CODESCAN: 'blue',
@@ -27,28 +20,6 @@ const toolTypeColorMap = {
   SECRETSCAN: 'purple'
 };
 
-const { Option } = Select;
-
-// Possible states for Dependabot
-const dependabotStates = ['open', 'dismissed'];
-const codescanStates = ['open', 'dismissed'];
-const secretscanStates = ['open', 'resolved'];
-
-// Possible dismissed reasons
-const DismissedReasonDependabot = [
-  { value: 'fix_started', label: 'Fix Started' },
-  { value: 'inaccurate', label: 'Inaccurate' },
-  { value: 'no_bandwidth', label: 'No Bandwidth' },
-  { value: 'not_used', label: 'Not Used' },
-  { value: 'tolerable_risk', label: 'Tolerable Risk' },
-];
-
-const DismissedReasonCodeScan = [
-  { value: 'false positive', label: 'False Positive' },
-  { value: `won't fix`, label: 'Would Not Fix' },
-  { value: 'used in tests', label: 'Used In Tests' },
-  { value: 'null', label: 'Null' },
-];
 export default function FindingTable({
   findings,         
   loading,          
@@ -60,8 +31,7 @@ export default function FindingTable({
 
   const [drawerVisible, setDrawerVisible] = useState(false);
   const [selectedFinding, setSelectedFinding] = useState(null);
-  const [tempState, setTempState] = useState('');
-  const [dismissReason, setDismissReason] = useState('');
+
   const handleOpenDrawer = (record) => {
     setSelectedFinding(record);
     setDrawerVisible(true);
@@ -72,22 +42,6 @@ export default function FindingTable({
     setSelectedFinding(null);
   };
 
-  const handleSaveState = () => {
-    if (!selectedFinding) return;
-    const uuid = selectedFinding.id;
-
-    const alertNumber =selectedFinding.additionalData?.number;
-    console.log(alertNumber)
-    // Call parent's function with both
-    updateAlertState(
-      uuid,
-      alertNumber,
-      tempState,
-      tempState === 'dismissed' ? dismissReason : null
-    );
-
-    handleCloseDrawer();
-  };
   const columns = [
     {
       title: 'ID',
@@ -134,10 +88,9 @@ export default function FindingTable({
       key: 'status',
       width: '10%',
       align: 'center',
-      render: (status) => {
-        const color = statusColorMap[status] || 'default';
-        return <Tag color={color}>{status}</Tag>;
-      },
+      render: (status, record) => (
+        <StatusPopover record={record} updateAlertState={updateAlertState} />
+      ),
     },
     {
       title: 'Severity',
@@ -161,6 +114,23 @@ export default function FindingTable({
       render: (desc) => (
         <Tooltip title={desc}>
           <span style={{ cursor: 'default' }}>{desc}</span>
+        </Tooltip>
+      ),
+    },
+    {
+      title: 'UpdatedAt',
+      dataIndex: 'updatedAt',
+      key: 'updatedAt',
+      width: '15%',
+      ellipsis: {
+        showTitle: false,
+      },
+      sorter: (a, b) => new Date(b.updatedAt) - new Date(a.updatedAt),
+      sortDirections: ['descend', 'ascend'],
+      defaultSortOrder: 'ascend',
+      render: (updatedAtValue) => (
+        <Tooltip title={updatedAtValue}>
+          <span style={{ cursor: 'default' }}>{updatedAtValue}</span>
         </Tooltip>
       ),
     },
@@ -192,6 +162,9 @@ export default function FindingTable({
         pageSize: 11,         
         total: total,        
         showSizeChanger: false,
+        showTotal: (totalItems, range) => {
+          return `Showing ${range[0]} to ${range[1]} of ${totalItems}`;
+        },
       }}
       onChange={onTableChange}
     />
@@ -203,51 +176,6 @@ export default function FindingTable({
         onClose={handleCloseDrawer}
         open={drawerVisible}
       >
-        {selectedFinding ? (
-          <>
-            <h3>Dependabot State</h3>
-            <Select
-              style={{ width: 200 }}
-              value={tempState}
-              onChange={(val) => {
-                setTempState(val);
-                if (val === 'open') setDismissReason('');
-              }}
-            >
-              {dependabotStates.map((st) => (
-                <Option key={st} value={st}>
-                  {st}
-                </Option>
-              ))}
-            </Select>
-
-            {tempState === 'dismissed' && (
-              <>
-                <h4>Dismissed Reason</h4>
-                <Select
-                  style={{ width: 200 }}
-                  placeholder="Select reason"
-                  value={dismissReason}
-                  onChange={setDismissReason}
-                >
-                  {DismissedReasonDependabot.map((dr) => (
-                    <Option key={dr.value} value={dr.value}>
-                      {dr.label}
-                    </Option>
-                  ))}
-                </Select>
-              </>
-            )}
-
-            <div style={{ marginTop: 24 }}>
-              <Button type="primary" onClick={handleSaveState} disabled={tempState === 'dismissed' && !dismissReason}>
-                Save
-              </Button>
-            </div>
-          </>
-        ) : (
-          <p>No data</p>
-        )}
         <AdditionalFinding finding={selectedFinding} />
       </Drawer>
     </>
