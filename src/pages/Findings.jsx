@@ -1,10 +1,10 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useContext } from 'react';
 import { Layout, message } from 'antd';
 import Fetching from '../components/fetching';
 import SideBar from '../components/SideBar';
 import FilterBar from '../components/FilterBar';
 import FindingTable from '../components/FindingTable';
-
+import { UserContext } from '../UserContext';
 const { Header, Content } = Layout;
 
 export default function Findings(){
@@ -17,7 +17,14 @@ export default function Findings(){
     const [total, setTotal] = useState(0);
     const PAGE_SIZE = 11;
   
-  
+    const { user } = useContext(UserContext);
+
+    const isAdmin = user?.role === 'ADMIN';
+    const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+    const canScan = isAdmin || isSuperAdmin;
+    const canDeleteAll = isSuperAdmin;
+    const canUpdateState = isSuperAdmin;
+
     const fetchFindingsPaged = async (page) => {
       setLoading(true);
       try {
@@ -35,7 +42,9 @@ export default function Findings(){
         params.append('page', page);
         params.append('size', PAGE_SIZE);  
   
-        const response = await fetch(`http://localhost:8083/api/findings/search?${params.toString()}`);
+        const response = await fetch(`http://localhost:8083/api/findings/search?${params.toString()}`,{
+             credentials: 'include'
+        });
         if (!response.ok) {
           throw new Error('Failed to fetch findings (server-side pagination)');
         }
@@ -53,6 +62,10 @@ export default function Findings(){
   
   
     const updateAlertState = async (uuid,alertNumber, newState, dismissedReason,tooltype) => {
+        if (!canUpdateState) {
+            message.error('You do not have permission to update alert state.');
+            return;
+          }
       try {
         const body = {
           state: newState,
@@ -62,6 +75,7 @@ export default function Findings(){
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
+          credentials:"include"
         });
         if (!resp.ok) {
           throw new Error('Failed to update alert state');
@@ -74,6 +88,10 @@ export default function Findings(){
     };
   
     const handleScanEvent = async (selectedTool) => {
+        if (!canScan) {
+            message.error('You do not have permission to scan.');
+            return;
+          }
       setLoading(true);
       console.log(selectedTool)
       try {
@@ -87,6 +105,7 @@ export default function Findings(){
             repo: "juice-shop",
             types: [selectedTool],
           }),
+          credentials:"include"
         });
         
         if (!response.ok) {
@@ -103,6 +122,10 @@ export default function Findings(){
     
   
     const handleDeleteAll = async () => {
+        if (!canDeleteAll) {
+            message.error('You do not have permission to delete all findings.');
+            return;
+          }
       const confirmDelete = window.confirm('Are you sure you want to delete all findings?');
       if (!confirmDelete) return;
   
@@ -110,6 +133,7 @@ export default function Findings(){
       try {
         const response = await fetch('http://localhost:8083/api/findings', {
           method: 'DELETE',
+          credentials:'include'
         });
         if (!response.ok) {
           throw new Error('Failed to delete all findings');
@@ -135,7 +159,8 @@ export default function Findings(){
       setCurrentPage(newPage);
       fetchFindingsPaged(newPage);
     };
-  
+ 
+
     useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const incomingTools = params.getAll('toolType'); 
@@ -169,14 +194,10 @@ export default function Findings(){
         newParams.set('page', currentPage);
         newParams.set('size', PAGE_SIZE);
     
-        // 2B) Replace the browser URL
         window.history.replaceState({}, '', '?' + newParams.toString());
-    
-        // 2C) Now fetch with these filters
         fetchFindingsPaged(currentPage);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
       }, [toolType, severity, status, currentPage]);
- 
+    
     return(
         <Layout style={{ minHeight: '100vh' }}>
       <SideBar />
@@ -197,6 +218,8 @@ export default function Findings(){
           onScan={handleScanEvent}
           onDeleteAll={handleDeleteAll}
           loading={loading}
+          canScan={canScan}
+          canDeleteAll={canDeleteAll}
         />
           </div>
         </Header>
@@ -210,6 +233,7 @@ export default function Findings(){
             severity={severity}
             setSeverity={setSeverity}
             onSearch={handleSearchClick}
+            
           />
 
           <FindingTable
@@ -219,6 +243,7 @@ export default function Findings(){
             total={total}
             onTableChange={handleTableChange}
             updateAlertState={updateAlertState}
+            canUpdateState={canUpdateState}
           />
         </Content>
       </Layout>

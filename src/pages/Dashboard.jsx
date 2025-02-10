@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect,useContext } from 'react';
 import Highcharts from 'highcharts';
 import HighchartsReact from 'highcharts-react-official';
 import {
@@ -13,91 +13,210 @@ import {
   Button,
   message
 } from 'antd';
-import { EllipsisOutlined } from '@ant-design/icons';
-
+import { EllipsisOutlined,LogoutOutlined } from '@ant-design/icons';
+import { UserContext } from '../UserContext';
 import Sidebar from '../components/SideBar';
 
 const { Header, Content } = Layout;
 const { Option } = Select;
 
-
 const ALL_TOOLS = ['ALL', 'DEPENDABOT', 'SECRETSCAN', 'CODESCAN'];
 
 Highcharts.setOptions({
     colors: [
-      '#4E79A7', // Blue
-      '#F28E2B', // Orange
-      '#76B7B2', // Teal
-      '#EDC948', // Yellow-gold
-      '#FF9DA7', // Pinkish
-      '#9C755F', // Brown
-      '#BAB0AC', // Gray
+        '#4E79A7', // Blue
+        '#F28E2B', // Orange
+        '#76B7B2', // Teal
+        '#EDC948', // Yellow-gold
+        '#FF9DA7', // Pinkish
+        '#9C755F', // Brown
+        '#BAB0AC', // Gray
     ],
-  });
+});
 
 export default function Dashboard() {
-  const [toolWise, setToolWise] = useState([]);      
-  const [statusWise, setStatusWise] = useState({});    
-  const [severityWise, setSeverityWise] = useState({});
-  const [cvssRanges, setCvssRanges] = useState([]);   
-
-  const [totalFindings, setTotalFindings] = useState(0);
-  const [criticalCount, setCriticalCount] = useState(0);
-  const [openCount, setOpenCount] = useState(0);
-  const [avgCvss, setAvgCvss] = useState(0);
-
-  const [selectedTool, setSelectedTool] = useState([]);
-
-  const fetchDashboardData = async (tools=[]) => {
-    try {
-        let url = 'http://localhost:8083/api/dashboard';
-        if (tools.length > 0) {
-            const queryParams = new URLSearchParams();
-            tools.forEach(t => queryParams.append('tools', t));
-            url += `?${queryParams.toString()}`;
-          }
-      const resp = await fetch(url);
-      if (!resp.ok) {
-        throw new Error('Failed to fetch dashboard data');
-      }
-      const data = await resp.json();
+    const [toolWise, setToolWise] = useState([]);      
+    const [statusWise, setStatusWise] = useState({});    
+    const [severityWise, setSeverityWise] = useState({});
+    const [cvssRanges, setCvssRanges] = useState([]);   
+    
+    const [totalFindings, setTotalFindings] = useState(0);
+    const [criticalCount, setCriticalCount] = useState(0);
+    const [openCount, setOpenCount] = useState(0);
+    const [avgCvss, setAvgCvss] = useState(0);
+    
+    const [selectedTool, setSelectedTool] = useState([]);
+    
+    const { logout } = useContext(UserContext);
+//     const fetchDashboardData = async (tools=[]) => {
+//     try {
+//         let url = 'http://localhost:8083/api/dashboard';
+//         if (tools.length > 0) {
+//             const queryParams = new URLSearchParams();
+//             tools.forEach(t => queryParams.append('tools', t));
+//             url += `?${queryParams.toString()}`;
+//           }
+//       const resp = await fetch(url,
+//         {
+//             credentials: 'include'
+//        });
+//       if (!resp.ok) {
+//         throw new Error('Failed to fetch dashboard data');
+//       }
+//       const data = await resp.json();
      
-      const toolMap = data.toolWise || {};
-      const toolArr = [];
-      let total = 0;
-      for (const [toolName, count] of Object.entries(toolMap)) {
-        toolArr.push({ name: toolName, y: count });
-        total += count;
-      }
+//       const toolMap = data.toolWise || {};
+//       const toolArr = [];
+//       let total = 0;
+//       for (const [toolName, count] of Object.entries(toolMap)) {
+//         toolArr.push({ name: toolName, y: count });
+//         total += count;
+//       }
 
-      setToolWise(toolArr);
-      setStatusWise(data.statusWise || {});
-      setSeverityWise(data.severityWise || {});
-      setCvssRanges(data.cvssRanges || []);
+//       setToolWise(toolArr);
+//       setStatusWise(data.statusWise || {});
+//       setSeverityWise(data.severityWise || {});
+//       setCvssRanges(data.cvssRanges || []);
 
-      // Some top-level stats
-      setTotalFindings(total);
-      setCriticalCount(data.severityWise?.CRITICAL || 0);
-      setOpenCount(data.statusWise?.OPEN || 0);
+//       // Some top-level stats
+//       setTotalFindings(total);
+//       setCriticalCount(data.severityWise?.CRITICAL || 0);
+//       setOpenCount(data.statusWise?.OPEN || 0);
 
-      // If we want an approximate average CVSS from cvssRanges:
-      const sumCvss = (data.cvssRanges || []).reduce(
-        (acc, cur) => acc + cur.key * cur.count,
-        0
-      );
-      const countCvss = (data.cvssRanges || []).reduce(
-        (acc, cur) => acc + cur.count,
-        0
-      );
-      const computedAvg = countCvss ? sumCvss / countCvss : 0;
-      setAvgCvss(computedAvg);
+//       // If we want an approximate average CVSS from cvssRanges:
+//       const sumCvss = (data.cvssRanges || []).reduce(
+//         (acc, cur) => acc + cur.key * cur.count,
+//         0
+//       );
+//       const countCvss = (data.cvssRanges || []).reduce(
+//         (acc, cur) => acc + cur.count,
+//         0
+//       );
+//       const computedAvg = countCvss ? sumCvss / countCvss : 0;
+//       setAvgCvss(computedAvg);
+//     } catch (err) {
+//       message.error(err.message);
+//     }
+//   };
+
+
+const fetchToolData = async (tools = []) => {
+    let url = 'http://localhost:8083/api/dashboard/tools';
+    if (tools.length > 0) {
+      const queryParams = new URLSearchParams();
+      tools.forEach(t => queryParams.append('tools', t));
+      url += `?${queryParams.toString()}`;
+    }
+
+    const resp = await fetch(url, { credentials: 'include' });
+    if (!resp.ok) {
+      throw new Error('Failed to fetch tool data');
+    }
+    const data = await resp.json(); // e.g. { DEPENDABOT: 10, SECRETSCAN: 5, ... }
+
+    // Convert map into array for Highcharts Pie or usage
+    const toolArray = [];
+    let total = 0;
+    for (const [toolName, count] of Object.entries(data)) {
+      toolArray.push({ name: toolName, y: count });
+      total += count;
+    }
+    setToolWise(toolArray);
+
+    // We can also treat "totalFindings" as the sum of tool aggregator,
+    // or we could do it from the status aggregator. We’ll do it from tools here.
+    setTotalFindings(total);
+  };
+
+  /**
+   * Fetch status-wise aggregator (GET /api/dashboard/status).
+   * Returns JSON like: { "OPEN": 15, "CLOSED": 4, ... }
+   */
+  const fetchStatusData = async (tools = []) => {
+    let url = 'http://localhost:8083/api/dashboard/status';
+    if (tools.length > 0) {
+      const queryParams = new URLSearchParams();
+      tools.forEach(t => queryParams.append('tools', t));
+      url += `?${queryParams.toString()}`;
+    }
+
+    const resp = await fetch(url, { credentials: 'include' });
+    if (!resp.ok) {
+      throw new Error('Failed to fetch status data');
+    }
+    const data = await resp.json(); // e.g. { OPEN: 10, CLOSED: 5, ... }
+    setStatusWise(data);
+
+    // If you want to track "openCount":
+    const open = data.OPEN || 0;
+    setOpenCount(open);
+  };
+
+  /**
+   * Fetch severity-wise aggregator (GET /api/dashboard/severity).
+   * Returns JSON like: { "CRITICAL": 3, "HIGH": 10, "MEDIUM": 20, ... }
+   */
+  const fetchSeverityData = async (tools = []) => {
+    let url = 'http://localhost:8083/api/dashboard/severity';
+    if (tools.length > 0) {
+      const queryParams = new URLSearchParams();
+      tools.forEach(t => queryParams.append('tools', t));
+      url += `?${queryParams.toString()}`;
+    }
+
+    const resp = await fetch(url, { credentials: 'include' });
+    if (!resp.ok) {
+      throw new Error('Failed to fetch severity data');
+    }
+    const data = await resp.json(); // e.g. { CRITICAL: 2, HIGH: 5, LOW: 10, ... }
+    setSeverityWise(data);
+
+    // Example: track how many are CRITICAL
+    setCriticalCount(data.CRITICAL || 0);
+  };
+
+  /**
+   * Fetch CVSS aggregator (GET /api/dashboard/cvss).
+   * Returns array of objects like: [ { key: 0.0, count: 2 }, { key: 2.0, count: 5 }, ... ]
+   */
+  const fetchCvssData = async (tools = []) => {
+    let url = 'http://localhost:8083/api/dashboard/cvss';
+    if (tools.length > 0) {
+      const queryParams = new URLSearchParams();
+      tools.forEach(t => queryParams.append('tools', t));
+      url += `?${queryParams.toString()}`;
+    }
+
+    const resp = await fetch(url, { credentials: 'include' });
+    if (!resp.ok) {
+      throw new Error('Failed to fetch CVSS data');
+    }
+    const data = await resp.json(); // e.g. [ { key: 0.0, count: 2 }, { key: 2.0, count: 5 }, ... ]
+    setCvssRanges(data);
+
+    // Example: approximate average CVSS
+    const sumCvss = data.reduce((acc, cur) => acc + cur.key * cur.count, 0);
+    const countCvss = data.reduce((acc, cur) => acc + cur.count, 0);
+    setAvgCvss(countCvss ? sumCvss / countCvss : 0);
+  };
+
+  const fetchAllData = async (tools = []) => {
+    try {
+      await Promise.all([
+        fetchToolData(tools),
+        fetchStatusData(tools),
+        fetchSeverityData(tools),
+        fetchCvssData(tools),
+      ]);
     } catch (err) {
       message.error(err.message);
     }
   };
 
+
   useEffect(() => {
-    fetchDashboardData([]);
+    // fetchDashboardData([]);
+    fetchAllData([]);
   }, []);
 
 
@@ -242,7 +361,8 @@ export default function Dashboard() {
 
   const handleToolChange = (toolValue) => {
     setSelectedTool(toolValue);
-    fetchDashboardData(toolValue);
+    fetchAllData(toolValue);
+    // fetchDashboardData(toolValue);
   };
 
   return (
@@ -260,6 +380,13 @@ export default function Dashboard() {
           }}
         >
           <h2 style={{ margin: 0 }}>Security Dashboard</h2>
+          <Button
+            type="default"
+            icon={<LogoutOutlined />}
+            onClick={logout}
+         >
+            Logout
+        </Button>
         </Header>
 
         <Content style={{ margin: '16px', background: '#f0f2f5' }}>

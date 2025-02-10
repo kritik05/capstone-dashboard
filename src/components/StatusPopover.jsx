@@ -58,7 +58,7 @@ import { Popover, Select, Tag, Button } from 'antd';
         return [];
     }
   };
-  const StatusPopover = ({ record, updateAlertState }) => {
+  const StatusPopover = ({ record, updateAlertState,canUpdateState }) => {
     const [visible, setVisible] = useState(false);
     const [tempState, setTempState] = useState(record.status?.toLowerCase());
     const [dismissReason, setDismissReason] = useState('');
@@ -157,20 +157,23 @@ import { Popover, Select, Tag, Button } from 'antd';
     );
   
     const statusColor = statusColorMap[record.status] || 'default';
-  
-    return (
-      <Popover
-        content={content}
-        title={`Update Status: ${record.title}`}
-        trigger="click"
-        open={visible}
-        onOpenChange={setVisible}
-      >
-        <Tag color={statusColor} style={{ cursor: 'pointer' }}>
+    return canUpdateState ? (
+        <Popover
+          content={content}
+          title={`Update Status: ${record.title}`}
+          trigger="click"
+          open={visible}
+          onOpenChange={setVisible}
+        >
+          <Tag color={statusColor} style={{ cursor: 'pointer' }}>
+            {record.status}
+          </Tag>
+        </Popover>
+      ) : (
+        <Tag color={statusColor}>
           {record.status}
         </Tag>
-      </Popover>
-    );
+      );
   };
 
   export default StatusPopover;

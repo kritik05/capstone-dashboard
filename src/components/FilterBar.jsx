@@ -30,7 +30,7 @@ export default function FilterBar({
   setStatus,
   severity,
   setSeverity,
-  onSearch
+  onSearch,
 }) {
   return (
     <div style={{ background: '#fff', padding: '16px', marginBottom: '16px' }}>

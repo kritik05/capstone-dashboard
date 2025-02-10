@@ -26,7 +26,8 @@ export default function FindingTable({
   currentPage,      
   total,            
   onTableChange,    
-  updateAlertState
+  updateAlertState,
+  canUpdateState
 }) {
 
   const [drawerVisible, setDrawerVisible] = useState(false);
@@ -89,7 +90,7 @@ export default function FindingTable({
       width: '10%',
       align: 'center',
       render: (status, record) => (
-        <StatusPopover record={record} updateAlertState={updateAlertState} />
+      <StatusPopover record={record} updateAlertState={updateAlertState} canUpdateState={canUpdateState} />
       ),
     },
     {
