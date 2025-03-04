@@ -16,6 +16,9 @@ import {
 import { EllipsisOutlined,LogoutOutlined } from '@ant-design/icons';
 import { UserContext } from '../UserContext';
 import Sidebar from '../components/SideBar';
+import TenantSelector from '../components/TenantSelector';
+
+
 
 const { Header, Content } = Layout;
 const { Option } = Select;
@@ -45,76 +48,25 @@ export default function Dashboard() {
     const [openCount, setOpenCount] = useState(0);
     const [avgCvss, setAvgCvss] = useState(0);
     
-    const [selectedTool, setSelectedTool] = useState([]);
     
-    const { logout } = useContext(UserContext);
-//     const fetchDashboardData = async (tools=[]) => {
-//     try {
-//         let url = 'http://localhost:8083/api/dashboard';
-//         if (tools.length > 0) {
-//             const queryParams = new URLSearchParams();
-//             tools.forEach(t => queryParams.append('tools', t));
-//             url += `?${queryParams.toString()}`;
-//           }
-//       const resp = await fetch(url,
-//         {
-//             credentials: 'include'
-//        });
-//       if (!resp.ok) {
-//         throw new Error('Failed to fetch dashboard data');
-//       }
-//       const data = await resp.json();
-     
-//       const toolMap = data.toolWise || {};
-//       const toolArr = [];
-//       let total = 0;
-//       for (const [toolName, count] of Object.entries(toolMap)) {
-//         toolArr.push({ name: toolName, y: count });
-//         total += count;
-//       }
+    const [selectedTool, setSelectedTool] = useState([]);
 
-//       setToolWise(toolArr);
-//       setStatusWise(data.statusWise || {});
-//       setSeverityWise(data.severityWise || {});
-//       setCvssRanges(data.cvssRanges || []);
-
-//       // Some top-level stats
-//       setTotalFindings(total);
-//       setCriticalCount(data.severityWise?.CRITICAL || 0);
-//       setOpenCount(data.statusWise?.OPEN || 0);
-
-//       // If we want an approximate average CVSS from cvssRanges:
-//       const sumCvss = (data.cvssRanges || []).reduce(
-//         (acc, cur) => acc + cur.key * cur.count,
-//         0
-//       );
-//       const countCvss = (data.cvssRanges || []).reduce(
-//         (acc, cur) => acc + cur.count,
-//         0
-//       );
-//       const computedAvg = countCvss ? sumCvss / countCvss : 0;
-//       setAvgCvss(computedAvg);
-//     } catch (err) {
-//       message.error(err.message);
-//     }
-//   };
-
+    const { logout,selectedTenantId } = useContext(UserContext);
 
 const fetchToolData = async (tools = []) => {
     let url = 'http://localhost:8083/api/dashboard/tools';
-    if (tools.length > 0) {
-      const queryParams = new URLSearchParams();
+    const queryParams = new URLSearchParams();
+    queryParams.append('tenantId', selectedTenantId);
+    // if (tools.length > 0) {
       tools.forEach(t => queryParams.append('tools', t));
       url += `?${queryParams.toString()}`;
-    }
+    // }
 
     const resp = await fetch(url, { credentials: 'include' });
     if (!resp.ok) {
       throw new Error('Failed to fetch tool data');
     }
-    const data = await resp.json(); // e.g. { DEPENDABOT: 10, SECRETSCAN: 5, ... }
-
-    // Convert map into array for Highcharts Pie or usage
+    const data = await resp.json();
     const toolArray = [];
     let total = 0;
     for (const [toolName, count] of Object.entries(data)) {
@@ -122,79 +74,62 @@ const fetchToolData = async (tools = []) => {
       total += count;
     }
     setToolWise(toolArray);
-
-    // We can also treat "totalFindings" as the sum of tool aggregator,
-    // or we could do it from the status aggregator. We’ll do it from tools here.
     setTotalFindings(total);
   };
 
-  /**
-   * Fetch status-wise aggregator (GET /api/dashboard/status).
-   * Returns JSON like: { "OPEN": 15, "CLOSED": 4, ... }
-   */
   const fetchStatusData = async (tools = []) => {
     let url = 'http://localhost:8083/api/dashboard/status';
-    if (tools.length > 0) {
-      const queryParams = new URLSearchParams();
+    const queryParams = new URLSearchParams();
+    queryParams.append('tenantId', selectedTenantId);
+    // if (tools.length > 0) {
       tools.forEach(t => queryParams.append('tools', t));
       url += `?${queryParams.toString()}`;
-    }
+    // }
 
     const resp = await fetch(url, { credentials: 'include' });
     if (!resp.ok) {
       throw new Error('Failed to fetch status data');
     }
-    const data = await resp.json(); // e.g. { OPEN: 10, CLOSED: 5, ... }
+    const data = await resp.json();
     setStatusWise(data);
-
-    // If you want to track "openCount":
     const open = data.OPEN || 0;
     setOpenCount(open);
   };
 
-  /**
-   * Fetch severity-wise aggregator (GET /api/dashboard/severity).
-   * Returns JSON like: { "CRITICAL": 3, "HIGH": 10, "MEDIUM": 20, ... }
-   */
+
   const fetchSeverityData = async (tools = []) => {
     let url = 'http://localhost:8083/api/dashboard/severity';
-    if (tools.length > 0) {
-      const queryParams = new URLSearchParams();
+    const queryParams = new URLSearchParams();
+    queryParams.append('tenantId', selectedTenantId);
+    // if (tools.length > 0) {
       tools.forEach(t => queryParams.append('tools', t));
       url += `?${queryParams.toString()}`;
-    }
+    // }
 
     const resp = await fetch(url, { credentials: 'include' });
     if (!resp.ok) {
       throw new Error('Failed to fetch severity data');
     }
-    const data = await resp.json(); // e.g. { CRITICAL: 2, HIGH: 5, LOW: 10, ... }
+    const data = await resp.json(); 
     setSeverityWise(data);
-
-    // Example: track how many are CRITICAL
     setCriticalCount(data.CRITICAL || 0);
   };
 
-  /**
-   * Fetch CVSS aggregator (GET /api/dashboard/cvss).
-   * Returns array of objects like: [ { key: 0.0, count: 2 }, { key: 2.0, count: 5 }, ... ]
-   */
   const fetchCvssData = async (tools = []) => {
     let url = 'http://localhost:8083/api/dashboard/cvss';
-    if (tools.length > 0) {
-      const queryParams = new URLSearchParams();
+    const queryParams = new URLSearchParams();
+    queryParams.append('tenantId', selectedTenantId);
+    // if (tools.length > 0) {
       tools.forEach(t => queryParams.append('tools', t));
       url += `?${queryParams.toString()}`;
-    }
+    // }
 
     const resp = await fetch(url, { credentials: 'include' });
     if (!resp.ok) {
       throw new Error('Failed to fetch CVSS data');
     }
-    const data = await resp.json(); // e.g. [ { key: 0.0, count: 2 }, { key: 2.0, count: 5 }, ... ]
+    const data = await resp.json(); 
     setCvssRanges(data);
-
-    // Example: approximate average CVSS
     const sumCvss = data.reduce((acc, cur) => acc + cur.key * cur.count, 0);
     const countCvss = data.reduce((acc, cur) => acc + cur.count, 0);
     setAvgCvss(countCvss ? sumCvss / countCvss : 0);
@@ -213,11 +148,9 @@ const fetchToolData = async (tools = []) => {
     }
   };
 
-
   useEffect(() => {
-    // fetchDashboardData([]);
     fetchAllData([]);
-  }, []);
+  }, [selectedTenantId]);
 
 
   const toolWiseOptions = {
@@ -289,7 +222,6 @@ const fetchToolData = async (tools = []) => {
     ],
   };
 
-  // 3) Severity-wise (Column)
   const severityCategories = Object.keys(severityWise);
   const severityData = Object.values(severityWise);
 
@@ -308,7 +240,7 @@ const fetchToolData = async (tools = []) => {
     },
     plotOptions: {
         series: {
-          colorByPoint: true, // each category gets a unique color
+          colorByPoint: true, 
           point: {
             events: {
               click: function (event) {
@@ -380,6 +312,7 @@ const fetchToolData = async (tools = []) => {
           }}
         >
           <h2 style={{ margin: 0 }}>Security Dashboard</h2>
+          <TenantSelector/>
           <Button
             type="default"
             icon={<LogoutOutlined />}

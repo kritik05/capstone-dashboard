@@ -24,9 +24,9 @@ function Fetching({ onScan, onDeleteAll, loading,canScan,canDeleteAll}) {
             style={{ width: 160 }}
           >
             <Option value="ALL">ALL</Option>
-            <Option value="CODE_SCAN">CODESCAN</Option>
+            <Option value="CODESCAN">CODESCAN</Option>
             <Option value="DEPENDABOT">DEPENDABOT</Option>
-            <Option value="SECRET_SCAN">SECRETSCAN</Option>
+            <Option value="SECRETSCAN">SECRETSCAN</Option>
           </Select>
 
           <Button
@@ -52,13 +52,7 @@ function Fetching({ onScan, onDeleteAll, loading,canScan,canDeleteAll}) {
           Delete All
         </Button>
       )}
-      <Button
-        type="default"
-        icon={<LogoutOutlined />}
-        onClick={logout}
-      >
-        Logout
-      </Button>
+     
     </div>
   );
 }

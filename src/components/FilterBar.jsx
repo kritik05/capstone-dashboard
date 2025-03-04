@@ -1,7 +1,5 @@
 import React from 'react';
 import { Row, Col, Select, Button } from 'antd';
-import { SearchOutlined } from '@ant-design/icons';
-
 const toolTypeOptions = [
   { label: 'CODESCAN', value: 'CODESCAN' },
   { label: 'DEPENDABOT', value: 'DEPENDABOT' },
@@ -35,7 +33,7 @@ export default function FilterBar({
   return (
     <div style={{ background: '#fff', padding: '16px', marginBottom: '16px' }}>
       <Row gutter={16}>
-        <Col span={6}>
+        <Col span={8}>
           <label>Tool</label>
            <Select
             mode="multiple"
@@ -48,7 +46,7 @@ export default function FilterBar({
         />
         </Col>
 
-        <Col span={6}>
+        <Col span={8}>
           <label>Status</label>
            <Select
             mode="multiple"
@@ -61,7 +59,7 @@ export default function FilterBar({
         />
         </Col>
 
-        <Col span={6}>
+        <Col span={8}>
           <label>Severity</label>
            <Select
             mode="multiple"
@@ -72,16 +70,6 @@ export default function FilterBar({
             onChange={setSeverity}
             allowClear
         />
-        </Col>
-
-        <Col span={6} style={{ display: 'flex', alignItems: 'flex-end' }}>
-          <Button
-            type="primary"
-            icon={<SearchOutlined />}
-            onClick={onSearch}
-          >
-            Search
-          </Button>
         </Col>
       </Row>
     </div>

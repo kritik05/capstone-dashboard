@@ -1,9 +1,10 @@
 import React, { useState,useContext } from 'react';
-import { Layout, Menu } from 'antd';
-import { DashboardOutlined, FileSearchOutlined } from '@ant-design/icons';
 import armorcodeLogo from '../assets/armorcode_logo_mini1.png';
 import { useNavigate,useLocation } from 'react-router-dom';
 import { UserContext } from '../UserContext';
+import { icons } from 'antd/es/image/PreviewGroup';
+import { DashboardOutlined, FileSearchOutlined, MenuUnfoldOutlined, CodeOutlined, UserOutlined, IdcardOutlined } from '@ant-design/icons';
+import { Layout, Menu, Tag, Avatar } from 'antd';
 
 const { Sider } = Layout;
 
@@ -32,6 +33,12 @@ export default function Sidebar() {
     } else if (e.key === '2') {
       navigate('/finding');
     }
+    else if(e.key==='3'){
+      navigate('/tickets')
+    }
+    else if(e.key==='4'){
+      navigate('/runbook');
+    }
   };
 
   const menuItems = [
@@ -45,6 +52,17 @@ export default function Sidebar() {
       icon: <FileSearchOutlined />,
       label: 'Findings',
     },
+    {
+      key: '3',
+      icon :<MenuUnfoldOutlined />,
+      label: 'Tickets'
+    },
+    {
+      key:'4',
+      icon:<CodeOutlined />,
+      label:'Runbook'
+    }
+    
   ];
 
   return (
@@ -59,7 +77,7 @@ export default function Sidebar() {
         top: 0,
       }}
       collapsedWidth={80}
-      width={200}
+      width={180}
     >
       <div
         onClick={toggleSidebar}
@@ -97,27 +115,49 @@ export default function Sidebar() {
         )}
       </div>
     
-      <Menu
-        theme="dark"
-        mode="inline"
-        selectedKeys={getSelectedKey()}
-        style={{ border: 'none',backgroundColor:'#001a33'}}
-        items={menuItems}
-        onClick={menueItemClick}
-      />
-
-    {!collapsed && user && user.authenticated && (
-        <div
-          style={{
-            paddingLeft: 30,
-            paddingTop: 740,
-            color: '#fff',
-            fontWeight: '500',
-          }}
-        >
-          Welcome, {user.name }
-        </div>
-      )}
+<div style={{ position: 'relative', height: 'calc(100% - 90px)' }}>
+  <Menu
+    theme="dark"
+    mode="inline"
+    selectedKeys={getSelectedKey()}
+    style={{ border: 'none', backgroundColor: '#001a33' }}
+    items={menuItems}
+    onClick={menueItemClick}
+  />
+  
+  {!collapsed && user && user.authenticated && (
+  <div
+    style={{
+      position: 'absolute',
+      bottom: 16,
+      left: 0,
+      width: '100%',
+      padding: '8px 8px',
+      borderTop: '1px solid rgba(255,255,255,0.2)',
+      display: 'flex',
+      alignItems: 'center',
+      backgroundColor: '#001a33',
+    }}
+  >
+    <Avatar size="large" icon={<UserOutlined />} style={{ marginRight: 8 }} />
+    <div style={{ color: '#fff', flex: 1 }}>
+      <div style={{ fontWeight: 500, fontSize: 14 }}>{user.name}</div>
+      <div
+        style={{
+          display: 'flex',
+          alignItems: 'center',
+          fontSize: 12, 
+          opacity: 0.8,
+          marginTop: 2, 
+        }}
+      >
+        <IdcardOutlined style={{ marginRight: 4, fontSize: 10, color: '#aaa' }} />
+        <span>{user.roleForTenant}</span>
+      </div>
+    </div>
+  </div>
+)}
+</div>
     </Sider>
   );
 }

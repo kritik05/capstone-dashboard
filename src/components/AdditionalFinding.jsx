@@ -1,6 +1,6 @@
 import React from 'react';
-import { Descriptions, Tag } from 'antd';
-
+import { Descriptions, Tag, Button, Space, Modal, Form, Input, message } from 'antd';
+import { useState } from 'react';
 const severityColorMap = {
   CRITICAL: 'red',
   HIGH: 'volcano',
@@ -18,15 +18,51 @@ const statusColorMap = {
   CONFIRM: 'magenta',
 };
 
-const AdditionalFinding = ({ finding }) => {
+function statusClosed(status) {
+  return ["CLOSED", "FALSE_POSITIVE", "SUPPRESSED", "FIXED", "CONFIRM"].includes(status);
+}
+
+const { TextArea } = Input;
+
+const AdditionalFinding = ({ finding,onCreateTicket,onViewTicket }) => {
   if (!finding) {
     return <p>No data</p>;
   }
 
   const severityColor = severityColorMap[finding.severity] || 'default';
   const statusColor = statusColorMap[finding.status] || 'default';
+  const isTicketCreated = !!finding.ticketId;
+
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [summary, setSummary] = useState(finding.title || '');
+  const [description, setDescription] = useState(finding.description || '');
+
+  const createTicketbtn = statusClosed(finding.status?.toString());
+
+  const handleOpenModal = () => {
+    // Reset or prefill from the finding each time we open
+    setSummary(finding.title || '');
+    setDescription(finding.description || '');
+    setIsModalOpen(true);
+  };
+
+  const handleCloseModal = () => {
+    setIsModalOpen(false);
+  };
+
+
+  const handleCreate = async () => {
+    try {
+      // Call the parent's createTicket method, passing the updated summary/description
+      await onCreateTicket(finding, summary, description);
+      handleCloseModal();
+    } catch (err) {
+      message.error(err.message);
+    }
+  };
 
   return (
+    <div>
     <Descriptions
       title="Finding Details"
       bordered
@@ -83,6 +119,45 @@ const AdditionalFinding = ({ finding }) => {
         {finding.location}
       </Descriptions.Item>
     </Descriptions>
+
+    <div style={{ marginTop: 16 }}>
+    <Space>
+      {/* Create or View Ticket Button */}
+      {!isTicketCreated && !createTicketbtn? (
+        <Button type="primary" onClick={handleOpenModal}>
+        Create Ticket
+      </Button>
+      ) : isTicketCreated ? (
+        <Button onClick={() => onViewTicket(finding)}>View Ticket</Button>
+      ) : null}
+    </Space>
+    </div>
+    <Modal
+        title="Create Ticket"
+        open={isModalOpen}
+        onOk={handleCreate}
+        onCancel={handleCloseModal}
+        okText="Create"
+        destroyOnClose
+      >
+        <Form layout="vertical">
+          <Form.Item label="Summary">
+            <Input
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+            />
+          </Form.Item>
+          <Form.Item label="Description">
+            <TextArea
+              rows={4}
+              value={description}
+              onChange={(e) => setDescription(e.target.value)}
+            />
+          </Form.Item>
+        </Form>
+      </Modal>
+    </div>
+    
   );
 };
 

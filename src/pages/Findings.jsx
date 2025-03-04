@@ -1,26 +1,30 @@
 import React, { useState, useEffect,useContext } from 'react';
-import { Layout, message } from 'antd';
+import { Layout, message,Button } from 'antd';
 import Fetching from '../components/fetching';
 import SideBar from '../components/SideBar';
 import FilterBar from '../components/FilterBar';
 import FindingTable from '../components/FindingTable';
 import { UserContext } from '../UserContext';
 const { Header, Content } = Layout;
+import TenantSelector from '../components/TenantSelector';
+import { LogoutOutlined } from '@ant-design/icons';
 
 export default function Findings(){
     const [toolType, setToolType] = useState([]);
     const [severity, setSeverity] = useState([]);
     const [status, setStatus] = useState([]);
+    const [findingId,setFindingId]=useState(null);
     const [findings, setFindings] = useState([]);
     const [loading, setLoading] = useState(false);
     const [currentPage, setCurrentPage] = useState(1);
     const [total, setTotal] = useState(0);
     const PAGE_SIZE = 11;
   
-    const { user } = useContext(UserContext);
+    const { user,selectedTenantId ,logout} = useContext(UserContext);
 
-    const isAdmin = user?.role === 'ADMIN';
-    const isSuperAdmin = user?.role === 'SUPER_ADMIN';
+    const currentRole = user?.roleForTenant;
+    const isAdmin = currentRole === 'ADMIN';
+    const isSuperAdmin = currentRole === 'SUPER_ADMIN';
     const canScan = isAdmin || isSuperAdmin;
     const canDeleteAll = isSuperAdmin;
     const canUpdateState = isSuperAdmin;
@@ -41,7 +45,8 @@ export default function Findings(){
   
         params.append('page', page);
         params.append('size', PAGE_SIZE);  
-  
+        params.append('tenantId', selectedTenantId);
+
         const response = await fetch(`http://localhost:8083/api/findings/search?${params.toString()}`,{
              credentials: 'include'
         });
@@ -71,7 +76,7 @@ export default function Findings(){
           state: newState,
           dismissedReason: dismissedReason || null,
         };
-        const resp = await fetch(`http://localhost:8083/api/findings/${uuid}/${tooltype}/alerts/${alertNumber}/state`, {
+        const resp = await fetch(`http://localhost:8083/api/findings/${uuid}/${tooltype}/alerts/${alertNumber}/state?tenantId=${selectedTenantId}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(body),
@@ -87,32 +92,46 @@ export default function Findings(){
       }
     };
   
+    const withTenantId = (baseUrl) => {
+      return `${baseUrl}?tenantId=${selectedTenantId}`;
+    };
+
     const handleScanEvent = async (selectedTool) => {
-        if (!canScan) {
-            message.error('You do not have permission to scan.');
-            return;
-          }
+      if (!canScan) {
+        message.error('You do not have permission to scan.');
+        return;
+      }
       setLoading(true);
-      console.log(selectedTool)
+      
+      let toolsToScan = [];
+        if (selectedTool === 'ALL') {
+          toolsToScan = ['CODESCAN', 'DEPENDABOT', 'SECRETSCAN'];
+        } else {
+          toolsToScan = [selectedTool];
+        }
+      
       try {
-        const response = await fetch('http://localhost:8083/api/scan', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            owner: "kritik05",
-            repo: "juice-shop",
-            types: [selectedTool],
-          }),
-          credentials:"include"
+
+        const scanCalls = toolsToScan.map(async (tool) => {
+          const payload = {
+            tenantId: selectedTenantId,
+            types: tool,
+          };
+          const response = await fetch(withTenantId('http://localhost:8083/api/scan'), {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload),
+            credentials: 'include',
+          });
+          if (!response.ok) {
+            throw new Error('Failed to update scan for tool: ' + tool);
+          }
+          return response;
         });
         
-        if (!response.ok) {
-          throw new Error('Failed to fetch all findings');
-        }
-        message.success('Findings Request sent successfully!');
-  
+        // Wait for all individual calls to finish
+        await Promise.all(scanCalls);
+        message.success('Scan request(s) sent successfully!');
       } catch (error) {
         message.error(error.message);
       } finally {
@@ -131,7 +150,7 @@ export default function Findings(){
   
       setLoading(true);
       try {
-        const response = await fetch('http://localhost:8083/api/findings', {
+        const response = await fetch(withTenantId('http://localhost:8083/api/findings'), {
           method: 'DELETE',
           credentials:'include'
         });
@@ -175,7 +194,10 @@ export default function Findings(){
     if (incomingStat.length > 0) {
       setStatus(incomingStat);
     }
-
+    const findingI = params.get('findingId');
+    if(findingI){
+      setFindingId(findingI);
+    }
     }, []);
 
     useEffect(() => {
@@ -193,10 +215,18 @@ export default function Findings(){
     
         newParams.set('page', currentPage);
         newParams.set('size', PAGE_SIZE);
-    
+        
+        if (selectedTenantId) {
+          newParams.set('tenantId', selectedTenantId);
+        }
+
+        if (findingId) {
+          newParams.set('findingId', findingId);
+        }
+
         window.history.replaceState({}, '', '?' + newParams.toString());
         fetchFindingsPaged(currentPage);
-      }, [toolType, severity, status, currentPage]);
+      }, [toolType, severity, status, currentPage, selectedTenantId,findingId]);
     
     return(
         <Layout style={{ minHeight: '100vh' }}>
@@ -212,8 +242,27 @@ export default function Findings(){
           }}
         >
           <h2 style={{ margin: 0 }}>Findings</h2>
-          <div>
-
+          <Button  type="default"
+            icon={<LogoutOutlined />}
+            onClick={logout}>Logout</Button> 
+              </Header>
+              <Content style={{ margin: '16px' }}>
+          {/* <TenantSelector/> */}
+          <div
+            style={{
+              background: '#fff',
+              padding: '16px',
+              marginBottom: '16px',
+            }}
+          >
+            <div
+              style={{
+                display: 'flex',
+                justifyContent: 'space-between',
+                alignItems: 'center',
+              }}
+            >
+              <TenantSelector />
           <Fetching
           onScan={handleScanEvent}
           onDeleteAll={handleDeleteAll}
@@ -222,9 +271,10 @@ export default function Findings(){
           canDeleteAll={canDeleteAll}
         />
           </div>
-        </Header>
+          </div>
+        {/* </Header> */}
 
-        <Content style={{ margin: '16px' }}>
+        {/* <Content style={{ margin: '16px' }}> */}
           <FilterBar
             toolType={toolType}
             setToolType={setToolType}
@@ -235,7 +285,7 @@ export default function Findings(){
             onSearch={handleSearchClick}
             
           />
-
+        
           <FindingTable
             findings={findings}
             loading={loading}
@@ -244,6 +294,9 @@ export default function Findings(){
             onTableChange={handleTableChange}
             updateAlertState={updateAlertState}
             canUpdateState={canUpdateState}
+            findingId={findingId}              // pass current param
+            setFindingId={setFindingId} 
+            
           />
         </Content>
       </Layout>
